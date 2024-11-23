@@ -6,7 +6,7 @@ import base64
 
 client = TestClient(app)
 
-def test_circuit_analysis():
+def test_retrieve_circuit_schema_endpoint():
     """Test circuit analysis with base64 encoded image"""
     
     # Image path

@@ -96,6 +96,7 @@ If there is a battery present, return True, if not return False.
 
     """
     response = await communicate_with_groq(prompt, image_bytes, schema=BatteryPresence)
+    print(f"IMPORTANT: {response}")
     return response.battery
 
 async def is_there_a_resistor(image_bytes: bytes) -> bool:
@@ -214,6 +215,7 @@ async def communicate_with_groq(
 async def branched_extraction(image_bytes: bytes) -> Dict[str, Any]:
     """This method first calls to identify the presence of what components exist, not quantity
     """
+    print(f"Going into branched extraction")
     components_available = await identify_components(image_bytes)
     print(f"Components available: {components_available}")
 
@@ -221,6 +223,7 @@ async def branched_extraction(image_bytes: bytes) -> Dict[str, Any]:
     ## given that we know what components exist
 
     result = await get_schema_with_components_given(image_bytes, components_available)
+    print(f"Result: {result}")
     schema_data = json.loads(result)
     validated_schema = CircuitSchema.model_validate(schema_data)
 
@@ -245,6 +248,8 @@ async def get_schema_with_components_given(image_bytes: bytes, components_availa
 
     # Build up component knowledge through training
     component_knowledge = []
+
+    print(f"Going into training loop")
 
     # Train on each component that's present in the circuit
     for component in components_available:
@@ -273,6 +278,8 @@ async def get_schema_with_components_given(image_bytes: bytes, components_availa
         f"{k['component'].title()}: {k['knowledge']}"
         for k in component_knowledge
     ])
+
+    print(f"Out of training loop")
     
     analysis_prompt = f"""As an expert circuit analyzer, I've learned about How the following components look in circuit diagrams:
 
@@ -298,6 +305,8 @@ Rules:
         temperature=0.2  # Lower temperature for more precise output
     )
 
+    print(f"Out of final analysis")
+
     return result
 
 async def test_extract_full_schema(image_bytes: bytes, basic: bool = True) -> Dict[str, Any]:
@@ -312,6 +321,7 @@ async def test_extract_full_schema(image_bytes: bytes, basic: bool = True) -> Di
     """
     
     if not basic:
+        print("Running branched extraction")
         return await branched_extraction(image_bytes)
     
     # First teach about basic components

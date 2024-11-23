@@ -11,22 +11,20 @@ def encode_image_bytes(image_bytes: bytes) -> str:
     return base64.b64encode(image_bytes).decode('utf-8')
 
 def create_structured_prompt() -> str:
-    return """Analyze this circuit image and identify all electronic components present. 
-    
-    Focus specifically on:
-    1. Power sources (batteries, power supplies)
-    2. Passive components (resistors, capacitors, inductors)
-    3. Active components (transistors, diodes)
-    4. Output components (LEDs, light bulbs, motors, buzzers)
-    
-    For each component found:
-    - Specify the quantity
-    - Note any visible ratings or values (if shown)
-    - Describe its position/role in the circuit (if clear)
-    
-    Format your response as a clear, structured list. Do not include wires or connections in the component count.
-    If you're uncertain about any component, indicate this clearly.
-    """
+    return """Analyze this simple circuit diagram and count the following components:
+
+    1. Batteries (voltage sources)
+    2. Resistors (shown as zigzag lines)
+    3. Switches
+    4. LEDs
+
+    Provide your response in this exact format:
+    - Batteries: [number]
+    - Resistors: [number]
+    - Switches: [number]
+    - LEDs: [number]
+
+    Only count these specific components. Ignore connecting wires."""
 
 async def analyze_circuit_image(image_bytes: bytes) -> Dict[str, Any]:
     image_data = encode_image_bytes(image_bytes)

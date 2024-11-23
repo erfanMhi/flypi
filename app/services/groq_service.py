@@ -1,11 +1,11 @@
-from groq import Groq
+from groq import AsyncGroq
 from typing import Dict, Any
 import base64
 import asyncio
 from app.core.config import get_settings
 
 settings = get_settings()
-client = Groq(api_key=settings.GROQ_API_KEY)
+client = AsyncGroq(api_key=settings.GROQ_API_KEY)
 
 def encode_image_bytes(image_bytes: bytes) -> str:
     return base64.b64encode(image_bytes).decode('utf-8')
@@ -36,14 +36,16 @@ async def analyze_circuit_image(image_bytes: bytes) -> Dict[str, Any]:
             model=settings.MODEL_NAME,
             messages=[
                 {
-                    "role": "system",
-                    "content": "You are an expert electronics engineer specializing in circuit analysis. Provide detailed, accurate component identification from circuit diagrams and photos."
-                },
-                {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": create_structured_prompt()},
-                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_data}"}}
+                        {
+                            "type": "text", 
+                            "text": "As an expert electronics engineer specializing in circuit analysis, " + create_structured_prompt()
+                        },
+                        {
+                            "type": "image_url", 
+                            "image_url": {"url": f"data:image/png;base64,{image_data}"}
+                        }
                     ]
                 }
             ],

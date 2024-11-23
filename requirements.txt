@@ -1,11 +1,9 @@
-<<<<<<< HEAD
+from http.client import HTTPException
 from fastapi import APIRouter, UploadFile, File
-=======
-from fastapi import APIRouter, UploadFile, File, HTTPException
->>>>>>> 625a962f0a23cb10867b881abf28458a7d4b41c7
 from app.core.exceptions import ImageTooLargeError, InvalidImageTypeError, AnalysisTimeoutError
 from app.services.groq_service import analyze_circuit_image, test_extract_full_schema
 from app.core.config import get_settings
+from app.core.exceptions import ImageTooLargeError, InvalidImageTypeError, AnalysisTimeoutError
 import asyncio
 
 router = APIRouter()

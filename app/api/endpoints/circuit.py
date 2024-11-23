@@ -35,7 +35,6 @@ async def retrieve_circuit_schema(request: CircuitImageRequest):
                 "model": settings.MODEL_NAME,
                 "timestamp": completion.created,
                 "file_info": {
-                    "filename": request.filename,
                     "content_type": request.content_type,
                     "size": len(image_content)
                 }

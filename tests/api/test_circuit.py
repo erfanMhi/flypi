@@ -25,7 +25,6 @@ def test_circuit_analysis():
         "/api/v1/retrieve-circuit-schema",
         json={
             "image_data": base64_image,
-            "filename": "circuit.png",
             "content_type": "image/png"
         }
     )

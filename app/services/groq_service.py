@@ -283,6 +283,10 @@ async def test_extract_full_schema(image_bytes: bytes, basic: bool = True) -> Di
         # Parse and validate the response against our schema
         schema_data = json.loads(completion.choices[0].message.content)
         validated_schema = CircuitSchema.model_validate(schema_data)
+
+        ## print the schema and model dump
+        print(f"Schema: {validated_schema}")
+        print(f"Model dump: {validated_schema.model_dump()}")
         
         return validated_schema.model_dump()
     except Exception as e:

@@ -51,3 +51,8 @@ async def retrieve_circuit_schema_test(image: UploadFile = File(...)):
     image_bytes = await image.read()
 
     return await test_extract_full_schema(image_bytes)
+
+@router.get("/test-connection")
+async def test_connection():
+    return {"message": "Connection successful"}
+

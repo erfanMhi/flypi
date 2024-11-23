@@ -51,10 +51,29 @@ async def retrieve_circuit_schema(request: CircuitImageRequest):
 
 @router.post("/retrieve-circuit-schema-test")
 async def retrieve_circuit_schema_test(request: CircuitImageRequest):
-    """Here we will recieve the image and then pass the image to an analysis service
+    """Process base64 encoded circuit image
     """
-    
-    return await test_extract_full_schema(request)
+    try:
+        # Decode base64 image
+        try:
+            image_bytes = base64.b64decode(request.image_data)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid base64 image data")
+        
+        # Validate file size
+        if len(image_bytes) > settings.MAX_IMAGE_SIZE:
+            raise ImageTooLargeError()
+            
+        # Validate image type
+        if not request.content_type.startswith('image/'):
+            raise InvalidImageTypeError()
+        
+        return await test_extract_full_schema(image_bytes)
+        
+    except (ImageTooLargeError, InvalidImageTypeError) as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/test-connection")
 async def test_connection():

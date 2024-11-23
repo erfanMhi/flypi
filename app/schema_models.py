@@ -1,4 +1,6 @@
 from pydantic import BaseModel, Field
+from typing import List, Dict
+
 
 class Component(BaseModel):
     id: str = Field(description="Unique identifier for the component")

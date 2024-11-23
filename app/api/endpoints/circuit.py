@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, HTTPException
 from app.core.exceptions import ImageTooLargeError, InvalidImageTypeError, AnalysisTimeoutError
 from app.services.groq_service import analyze_circuit_image
 from app.core.config import get_settings

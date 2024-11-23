@@ -31,9 +31,3 @@ build-backend = "poetry.core.masonry.api"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = """
-    --verbose
-    --cov=app
-    --cov-report=term-missing
-    --cov-report=html
-""" 

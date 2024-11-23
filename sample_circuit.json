@@ -1,0 +1,31 @@
+{
+    "components": [
+      {
+        "id": "C1",
+        "type": "battery"
+      },
+      {
+        "id": "R1",
+        "type": "resistor"
+      },
+      {
+        "id": "LED1",
+        "type": "led"
+      }
+    ],
+    "connections": [
+      {
+        "component": "C1",
+        "connections": ["R1"]
+      },
+      {
+        "component": "R1",
+        "connections": ["C1", "LED1"]
+      },
+      {
+        "component": "LED1",
+        "connections": ["R1"]
+      }
+    ]
+  }
+  

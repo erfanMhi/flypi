@@ -312,7 +312,7 @@ async def test_extract_full_schema(image_bytes: bytes, basic: bool = True) -> Di
     """
     
     if not basic:
-        return branched_extraction(image_bytes)
+        return await branched_extraction(image_bytes)
     
     # First teach about basic components
     battery_prompt = """This is what a battery looks like in circuit diagrams. 

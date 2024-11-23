@@ -1,8 +1,11 @@
+from app.schema_models import BatteryPresence, LEDPresence, ResistorPresence, SwitchPresence
 from groq import AsyncGroq
-from typing import Dict, Any
+from typing import Dict, Any, List
 import base64
 import asyncio
 from app.core.config import get_settings
+from pydantic import BaseModel
+import json
 
 settings = get_settings()
 client = AsyncGroq(api_key=settings.GROQ_API_KEY)
@@ -71,63 +74,145 @@ async def identify_components(image_bytes: bytes) -> set[str]:
 
     For example, a set that says ["battery", "resistor", "led"] would be returned
     """
+#     prompt = f"""
+# You have been given a circuit diagram image, from the image your ONLY job is to identify whe
+#     """
     return
 
 async def is_there_a_battery(image_bytes: bytes) -> bool:
     """Given an image, determine if there is a battery present
     """
-    return
+    prompt = f"""
+You have been given a circuit diagram image, from the image your ONLY job is to identify whether there is a battery present or not.
+
+If there is a battery present, return True, if not return False.
+
+    """
+    response = await communicate_with_groq(prompt, image_bytes, schema=BatteryPresence)
+    return response.battery
 
 async def is_there_a_resistor(image_bytes: bytes) -> bool:
     """Given an image, determine if there is a resistor present
     """
-    return 
+    prompt = f"""
+You have been given a circuit diagram image, from the image your ONLY job is to identify whether there is a resistor present or not.
+
+If there is a resistor present, return True, if not return False.
+
+    """
+    response = await communicate_with_groq(prompt, image_bytes, schema=ResistorPresence)
+    return response.resistor
 
 async def is_there_a_led(image_bytes: bytes) -> bool:
     """Given an image, determine if there is a led present
     """
-    return 
+    prompt = f"""
+You have been given a circuit diagram image, from the image your ONLY job is to identify whether there is a led present or not.
+
+If there is a led present, return True, if not return False.
+
+    """
+    response = await communicate_with_groq(prompt, image_bytes, schema=LEDPresence)
+    return response.led
 
 async def is_there_a_switch(image_bytes: bytes) -> bool:
     """Given an image, determine if there is a switch present
     """
-    return
+    prompt = f"""
+You have been given a circuit diagram image, from the image your ONLY job is to identify whether there is a switch present or not.
 
-async def communicate_with_groq(prompt: str, image_bytes: bytes, model: str = settings.MODEL_NAME, temperature: float = settings.TEMPERATURE, max_tokens: int = settings.MAX_TOKENS) -> str:
-    """Communicate with groq
+If there is a switch present, return True, if not return False.
+
+    """
+    response = await communicate_with_groq(prompt, image_bytes, schema=SwitchPresence)
+    return response.switch
+    
+
+async def communicate_with_groq(
+    prompt: str, 
+    image_bytes: bytes, 
+    model: str = settings.MODEL_NAME, 
+    temperature: float = settings.TEMPERATURE, 
+    max_tokens: int = settings.MAX_TOKENS,
+    schema: BaseModel = None,
+    context_messages: List[Dict[str, Any]] = None
+) -> str:
+    """Communicate with groq with optional schema validation and context
+
+    Args:
+        prompt: The prompt to send
+        image_bytes: The image bytes to analyze
+        model: The model to use
+        temperature: Temperature for generation
+        max_tokens: Maximum tokens to generate
+        schema: Optional Pydantic model for structured output
+        context_messages: Optional list of previous messages for context
     """
     image_data = encode_image_bytes(image_bytes)
     
+    # Build the messages array
+    messages = []
+    
+    # Add context messages if provided
+    if context_messages:
+        messages.extend(context_messages)
+    
+    # Build the final prompt
+    final_prompt = prompt
+    if schema:
+        final_prompt += f"\n\nOutput must match this JSON schema exactly:\n{json.dumps(schema.model_json_schema(), indent=2)}"
+    
+    # Add the main message with image
+    messages.append({
+        "role": "user",
+        "content": [
+            {"type": "text", "text": final_prompt},
+            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_data}"}}
+        ]
+    })
+    
+    # Configure completion options
+    completion_kwargs = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "top_p": 1,
+        "stream": False,
+        "stop": None,
+    }
+    
+    # Add response format if schema is provided
+    if schema:
+        completion_kwargs["response_format"] = {"type": "json_object"}
+    
     completion = await asyncio.wait_for(
-        client.chat.completions.create(
-            model=model,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_data}"}}
-                    ]
-                }
-            ],
-            temperature=temperature,
-            max_tokens=max_tokens,
-            top_p=1,
-            stream=False,
-            stop=None,
-        ),
+        client.chat.completions.create(**completion_kwargs),
         timeout=settings.GROQ_API_TIMEOUT
     )
     
-    return completion.choices[0].message.content 
+    response = completion.choices[0].message.content
+    
+    # Validate against schema if provided
+    if schema:
+        try:
+            data = json.loads(response)
+            validated = schema.model_validate(data)
+            return validated.model_dump()
+        except Exception as e:
+            raise ValueError(f"Response validation failed: {str(e)}")
+    
+    return response
 
-async def test_extract_full_schema(image_bytes: bytes) -> Dict[str, Any]:
+async def test_extract_full_schema(image_bytes: bytes, basic: bool = False) -> Dict[str, Any]:
     """Extract a full circuit schema from an image using the CircuitSchema model.
     
     This function:
     1. Shows examples of basic components (battery, resistor)
     2. Asks for a structured analysis of the circuit
     3. Returns the analysis in CircuitSchema format
+
+    If basic is False, we go into a more detailed analysis of the circuit
     """
     from app.schema_models import CircuitSchema
     import json

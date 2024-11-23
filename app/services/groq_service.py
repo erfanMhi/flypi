@@ -97,19 +97,6 @@ async def is_there_a_switch(image_bytes: bytes) -> bool:
 
 async def communicate_with_groq(prompt: str, image_bytes: bytes, model: str = settings.MODEL_NAME, temperature: float = settings.TEMPERATURE, max_tokens: int = settings.MAX_TOKENS) -> str:
     """Communicate with groq
-    
-    Args:
-        prompt (str): The text prompt to send to Groq
-        image_bytes (bytes): The image data to analyze
-        model (str, optional): The model to use. Defaults to settings.MODEL_NAME.
-        temperature (float, optional): Temperature parameter. Defaults to settings.TEMPERATURE.
-        max_tokens (int, optional): Maximum tokens. Defaults to settings.MAX_TOKENS.
-    
-    Returns:
-        str: The response content from Groq
-        
-    Raises:
-        asyncio.TimeoutError: If the request times out
     """
     image_data = encode_image_bytes(image_bytes)
     
@@ -117,10 +104,6 @@ async def communicate_with_groq(prompt: str, image_bytes: bytes, model: str = se
         client.chat.completions.create(
             model=model,
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are an expert electronics engineer specializing in circuit analysis. Provide detailed, accurate component identification from circuit diagrams and photos."
-                },
                 {
                     "role": "user",
                     "content": [
@@ -160,51 +143,53 @@ async def test_extract_full_schema(image_bytes: bytes) -> Dict[str, Any]:
     It's shown as a zigzag line or rectangular block. In a schema, it should be 
     identified as type 'resistor'."""
     
-    # Load and encode example images
-    with open("battery.png", "rb") as f:
-        battery_data = encode_image_bytes(f.read())
-    with open("resistor.png", "rb") as f:
-        resistor_data = encode_image_bytes(f.read())
-    circuit_data = encode_image_bytes(image_bytes)
-    
-    # Teach about components first
-    await communicate_with_groq(battery_prompt, battery_data)
-    await communicate_with_groq(resistor_prompt, resistor_data)
-    
-    # Now analyze the actual circuit with JSON schema
-    analysis_prompt = f"""Analyze this circuit diagram and output a JSON schema of the components and their connections.
-    
-    Rules:
-    1. Identify each component (battery, resistor, LED, etc.)
-    2. Assign unique IDs (e.g., "B1" for first battery, "R1" for first resistor)
-    3. Map the connections between components
-    4. Follow exactly this JSON schema: {json.dumps(CircuitSchema.model_json_schema(), indent=2)}
-    
-    Output only valid JSON matching the schema."""
-    
-    completion = await client.chat.completions.create(
-        model=settings.MODEL_NAME,
-        messages=[
-            {
-                "role": "system",
-                "content": "You are an expert circuit analyzer that outputs circuit descriptions in JSON format."
-            },
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": analysis_prompt},
-                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{circuit_data}"}}
-                ]
-            }
-        ],
-        temperature=0.2,  
-        max_tokens=settings.MAX_TOKENS,
-        response_format={"type": "json_object"},
-    )
-    
-    # Parse and validate the response against our schema
-    schema_data = json.loads(completion.choices[0].message.content)
-    validated_schema = CircuitSchema.model_validate(schema_data)
-    
-    return validated_schema.model_dump()
+    try:
+        # Load and encode example images - now with proper error handling
+        with open("battery.png", "rb") as f:
+            battery_bytes = f.read()
+            battery_data = encode_image_bytes(battery_bytes)
+        with open("resistor.png", "rb") as f:
+            resistor_bytes = f.read()
+            resistor_data = encode_image_bytes(resistor_bytes)
+        circuit_data = encode_image_bytes(image_bytes)
+        
+        # Teach about components first
+        await communicate_with_groq(battery_prompt, battery_bytes)
+        await communicate_with_groq(resistor_prompt, resistor_bytes)
+        
+        # Now analyze the actual circuit with JSON schema
+        analysis_prompt = f"""As an expert circuit analyzer, analyze this circuit diagram and output a JSON schema of the components and their connections.
+        
+        Rules:
+        1. Identify each component (battery, resistor, LED, etc.)
+        2. Assign unique IDs (e.g., "B1" for first battery, "R1" for first resistor)
+        3. Map the connections between components
+        4. Follow exactly this JSON schema: {json.dumps(CircuitSchema.model_json_schema(), indent=2)}
+        
+        Output only valid JSON matching the schema."""
+        
+        completion = await client.chat.completions.create(
+            model=settings.MODEL_NAME,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": analysis_prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{circuit_data}"}}
+                    ]
+                }
+            ],
+            temperature=0.2,  
+            max_tokens=settings.MAX_TOKENS,
+            response_format={"type": "json_object"},
+        )
+        
+        # Parse and validate the response against our schema
+        schema_data = json.loads(completion.choices[0].message.content)
+        validated_schema = CircuitSchema.model_validate(schema_data)
+        
+        return validated_schema.model_dump()
+    except Exception as e:
+        print(f"Error in test_extract_full_schema: {e}")
+        return {}
     

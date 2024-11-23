@@ -1,4 +1,5 @@
-from app.schema_models import BatteryPresence, LEDPresence, ResistorPresence, SwitchPresence
+from app.schema_models import BatteryPresence, LEDPresence, ResistorPresence, SwitchPresence, CircuitSchema
+import json
 from groq import AsyncGroq
 from typing import Dict, Any, List
 import base64
@@ -63,9 +64,6 @@ async def analyze_circuit_image(image_bytes: bytes) -> Dict[str, Any]:
 
 async def extract_components(image_bytes: bytes) -> Dict[str, Any]:
     """Given an image, extract the components and their connections
-    
-    First it will call functions to identify wether true or false if the presence of the main components exists
-    
     """
     return 
 
@@ -74,10 +72,19 @@ async def identify_components(image_bytes: bytes) -> set[str]:
 
     For example, a set that says ["battery", "resistor", "led"] would be returned
     """
-#     prompt = f"""
-# You have been given a circuit diagram image, from the image your ONLY job is to identify whe
-#     """
-    return
+    components = {
+        "battery": await is_there_a_battery(image_bytes),
+        "resistor": await is_there_a_resistor(image_bytes),
+        "led": await is_there_a_led(image_bytes),
+        "switch": await is_there_a_switch(image_bytes),
+    }
+
+    return_set = set()
+    for component, presence in components.items():
+        if presence:
+            return_set.add(component)
+
+    return return_set
 
 async def is_there_a_battery(image_bytes: bytes) -> bool:
     """Given an image, determine if there is a battery present
@@ -204,7 +211,12 @@ async def communicate_with_groq(
     
     return response
 
-async def test_extract_full_schema(image_bytes: bytes, basic: bool = False) -> Dict[str, Any]:
+async def branched_extraction(image_bytes: bytes) -> Dict[str, Any]:
+    """This method first calls to identify the presence of what components exist, not quantity
+    """
+    components_available = await identify_components(image_bytes)
+
+async def test_extract_full_schema(image_bytes: bytes, basic: bool = True) -> Dict[str, Any]:
     """Extract a full circuit schema from an image using the CircuitSchema model.
     
     This function:
@@ -214,8 +226,9 @@ async def test_extract_full_schema(image_bytes: bytes, basic: bool = False) -> D
 
     If basic is False, we go into a more detailed analysis of the circuit
     """
-    from app.schema_models import CircuitSchema
-    import json
+    
+    if not basic:
+        return branched_extraction(image_bytes)
     
     # First teach about basic components
     battery_prompt = """This is what a battery looks like in circuit diagrams. 

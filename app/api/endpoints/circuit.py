@@ -51,13 +51,11 @@ async def retrieve_circuit_schema(request: CircuitImageRequest):
     
 
 @router.post("/retrieve-circuit-schema-test")
-async def retrieve_circuit_schema_test(image: UploadFile = File(...)):
+async def retrieve_circuit_schema_test(request: CircuitImageRequest):
     """Here we will recieve the image and then pass the image to an analysis service
     """
     
-    image_bytes = await image.read()
-
-    return await test_extract_full_schema(image_bytes)
+    return await test_extract_full_schema(request)
 
 @router.get("/test-connection")
 async def test_connection():

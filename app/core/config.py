@@ -8,7 +8,12 @@ class Settings(BaseSettings):
     TEMPERATURE: float = 0.2
     MAX_TOKENS: int = 1024
     GROQ_API_KEY: str = ""
-
+    
+    # Add new network settings
+    HOST: str = "0.0.0.0"
+    PORT: int = 8000
+    RELOAD: bool = True
+    
     class Config:
         env_file = ".env"
 

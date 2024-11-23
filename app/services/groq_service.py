@@ -109,6 +109,7 @@ If there is a resistor present, return True, if not return False.
 
     """
     response = await communicate_with_groq(prompt, image_bytes, schema=ResistorPresence)
+    print(f"IMPORTANT: {response}")
     return response.resistor
 
 async def is_there_a_led(image_bytes: bytes) -> bool:

@@ -96,8 +96,7 @@ If there is a battery present, return True, if not return False.
 
     """
     response = await communicate_with_groq(prompt, image_bytes, schema=BatteryPresence)
-    print(f"IMPORTANT: {response}")
-    return response.battery
+    return list(response.values())[0]
 
 async def is_there_a_resistor(image_bytes: bytes) -> bool:
     """Given an image, determine if there is a resistor present
@@ -110,7 +109,9 @@ If there is a resistor present, return True, if not return False.
     """
     response = await communicate_with_groq(prompt, image_bytes, schema=ResistorPresence)
     print(f"IMPORTANT: {response}")
-    return response.resistor
+    ## since we have issues with the dict, but it will always return one key bool pair, lets just iter on the dict first item and
+    ## return the bool value    
+    return list(response.values())[0]
 
 async def is_there_a_led(image_bytes: bytes) -> bool:
     """Given an image, determine if there is a led present
@@ -122,7 +123,7 @@ If there is a led present, return True, if not return False.
 
     """
     response = await communicate_with_groq(prompt, image_bytes, schema=LEDPresence)
-    return response.led
+    return list(response.values())[0]
 
 async def is_there_a_switch(image_bytes: bytes) -> bool:
     """Given an image, determine if there is a switch present
@@ -134,7 +135,7 @@ If there is a switch present, return True, if not return False.
 
     """
     response = await communicate_with_groq(prompt, image_bytes, schema=SwitchPresence)
-    return response.switch
+    return list(response.values())[0]
     
 
 async def communicate_with_groq(

@@ -1,6 +1,7 @@
+from http.client import HTTPException
 from fastapi import APIRouter, UploadFile, File
 from app.core.exceptions import ImageTooLargeError, InvalidImageTypeError, AnalysisTimeoutError
-from app.services.groq_service import analyze_circuit_image
+from app.services.groq_service import analyze_circuit_image, test_extract_full_schema
 from app.core.config import get_settings
 import asyncio
 
@@ -41,3 +42,13 @@ async def retrieve_circuit_schema(image: UploadFile = File(...)):
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 
+    
+
+@router.post("/retrieve-circuit-schema-test")
+async def retrieve_circuit_schema_test(image: UploadFile = File(...)):
+    """Here we will recieve the image and then pass the image to an analysis service
+    """
+    
+    image_bytes = await image.read()
+
+    return await test_extract_full_schema(image_bytes)

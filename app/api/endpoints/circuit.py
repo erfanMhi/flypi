@@ -96,7 +96,8 @@ async def retrieve_circuit_schema_v0(request: CircuitImageRequest) -> CircuitIma
             raise InvalidImageTypeError()
         
         # Process the image bytes
-        return await test_extract_full_schema_v0(image_bytes)
+        components = await test_extract_full_schema_v0(image_bytes)
+        return CircuitImageResponseV0(components=components)
         
     except (ImageTooLargeError, InvalidImageTypeError) as e:
         raise e

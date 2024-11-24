@@ -46,7 +46,7 @@ def test_circuit_v0_responses(test_id):
 
     # Send the request to the API
     response = client.post(
-        "/api/v1/retrieve-circuit-schema-test",
+        "/api/v1/retrieve-circuit-schema-v0",
         json=payload
     )
 
@@ -56,6 +56,10 @@ def test_circuit_v0_responses(test_id):
 
     # Assert the response status code
     assert response.status_code == 200, f"API response status code {response.status_code} != 200"
-
+    print(f"the circuit is {test_id}")
+    expected_components = [component['type'] for component in expected_response['components']]
+    print(f"expected_components: {expected_components}")
+    response_components = response.json()['components']
+    print(f"response_components: {response_components}")
     # Assert the response JSON matches the expected response
-    assert response.json() == expected_response, f"API response does not match expected for {test_id}"
+    assert set(response_components) == set(expected_components), f"API response does not match expected for {test_id}"

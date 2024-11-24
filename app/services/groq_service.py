@@ -290,22 +290,18 @@ async def get_schema_with_components_given(image_bytes: bytes, components_availa
 {knowledge_summary}
 ```
 
-Now, analyze this circuit diagram and output a JSON schema of the components and their connections.
+Now, I will analyze this circuit diagram and output a JSON schema of the components and their connections.
 
-Rules:
-1. Only identify the components we learned about above
-2. Assign unique IDs (e.g., "B1" for first battery, "R1" for first resistor)
-3. Map the connections between components
- - For example, a component should be connected to two other components
 """
     #4. Follow exactly this JSON schema: {json.dumps(CircuitSchema.model_json_schema(), indent=2)}
 
+    print(f"Analysis prompt: {analysis_prompt}")
     # Final analysis with schema validation
     result = await communicate_with_groq(
         prompt=analysis_prompt,
         image_bytes=image_bytes,
         schema=CircuitSchema,
-        temperature=0.2  # Lower temperature for more precise output
+        temperature=0.5  # Lower temperature for more precise output
     )
 
     print(f"Out of final analysis")

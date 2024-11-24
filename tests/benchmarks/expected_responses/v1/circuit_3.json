@@ -1,3 +1,31 @@
 {
-    
-}
+    "components": [
+      {
+        "id": "battery1",
+        "type": "battery"
+      },
+      {
+        "id": "resistor1",
+        "type": "resistor"
+      },
+      {
+        "id": "switch1",
+        "type": "switch"
+      }
+    ],
+    "connections": [
+      {
+        "component": "battery1",
+        "connections": ["switch1", "resistor1"]
+      },
+      {
+        "component": "switch1",
+        "connections": ["battery1", "resistor1"]
+      },
+      {
+        "component": "resistor1",
+        "connections": ["battery1", "switch1"]
+      }
+    ]
+  }
+  

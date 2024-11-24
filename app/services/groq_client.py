@@ -2,7 +2,7 @@ from typing import Dict, Any, List
 import json
 import base64
 import asyncio
-from app.schema_models.component_schema import BasicComponentList
+from app.schema_models.component_schema import BasicComponentList, Switch
 from groq import AsyncGroq
 from pydantic import BaseModel
 from app.core.config import get_settings
@@ -121,114 +121,207 @@ async def communicate_with_groq(
     return response 
 
 
-async def identify_components_3shot(image_data: bytes) -> Dict[str, Any]:
+async def identify_components_3shot(image_data: bytes, only_look_for_switches: bool = False) -> Dict[str, Any]:
     # decode to bytes
     # image_bytes = base64.b64decode(image_data)
 
+    if not only_look_for_switches:
 
-    message_list = [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": "This is a sketched image of a basic high school electronics class. Please look at it well, do you see on the drawing any zigzag lines indicating resistors? any two parallel lines (one shorter that the other)  indicating a battery? Any loops indicating an LED, or any breaks in the line indicating a switch? "
-                    }
-                ]
-            }
-        ]
-
-    completion = await client.chat.completions.create(
-    model="llama-3.2-90b-vision-preview",
-    messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": "This is a sketched image of a basic high school electronics class. Please look at it well, do you see on the drawing any zigzag lines indicating resistors? any two parallel lines (one shorter that the other)  indicating a battery? Any loops indicating an LED, or any breaks in the line indicating a switch? THINK carefully, and only answer with the components that are present (battery will always be present), you will not see all components most of the time"
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{image_data}"
+        message_list = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "This is a sketched image of a basic high school electronic circuit. Please look at it well, do you see on the drawing any zigzag lines indicating resistors? any two parallel lines (one shorter that the other)  indicating a battery? Any loops indicating an LED, or any breaks in the line indicating a switch? "
                         }
-                    }
-                ]
-            }
-        ],
-        temperature=0.8,
-        # max_tokens=1024,
-        top_p=1,
-        stream=False,
-        stop=None,
-    )
+                    ]
+                }
+            ]
 
-    response1 = completion.choices[0].message.content
-
-    print(response1)
-
-    assistant_message = {
-        "role": "assistant",
-        "content": response1
-    }
-    message_list.append(assistant_message)
-
-    user_message = {
-        "role": "user",
-        "content": "What components of the list ('resistor', 'battery', 'led', 'switch') are present? NOT ALL WILL BE PRESENT, battery will always be present"
-    }
-    message_list.append(user_message)
-
-    completion2 = await client.chat.completions.create(
+        completion = await client.chat.completions.create(
         model="llama-3.2-90b-vision-preview",
-        messages=message_list,
-        temperature=0.7,
-        # max_tokens=1024,
-        top_p=1,
-        stream=False,
-        stop=None,
-    )
-
-    response2 = completion2.choices[0].message.content
-
-    print(response2)
-
-    ## now lets extract the json from the response
-    ## similar to this
-    
-    chat_completion_extraction = await client.chat.completions.create(
         messages=[
-            {
-                "role": "system",
-                "content": "You are an electrical circuit component identifier that outputs components in JSON.\n"
-                # Pass the json schema to the model. Pretty printing improves results.
-                f" The JSON object must use the schema: {json.dumps(BasicComponentList.model_json_schema(), indent=2)}",
-            },
-            {
-                "role": "user",
-                "content": f"Extract the components from the following text: {response2}",
-            },
-        ],
-        model="llama-3.2-90b-vision-preview",
-        temperature=0,
-        # Streaming is not supported in JSON mode
-        stream=False,
-        # Enable JSON mode by setting the response format
-        response_format={"type": "json_object"},
-    )
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "This is a sketched image of a basic high school electronic circuit. Please look at it well, do you see on the drawing any zigzag lines indicating resistors? any two parallel lines (one shorter that the other)  indicating a battery? Any loops indicating an LED, or any breaks in the line indicating a switch? THINK carefully, and only answer with the components that are present (battery will always be present), you will not see all components most of the time"
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{image_data}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            temperature=0.8,
+            # max_tokens=1024,
+            top_p=1,
+            stream=False,
+            stop=None,
+        )
 
-    response3 = chat_completion_extraction.choices[0].message.content
+        response1 = completion.choices[0].message.content
 
-    print(response3)
+        print(response1)
 
-    print("--------------------------------")
+        assistant_message = {
+            "role": "assistant",
+            "content": response1
+        }
+        message_list.append(assistant_message)
 
-    try:
-        data = json.loads(response3)
-        return data
-    except Exception as e:
-        return None
+        user_message = {
+            "role": "user",
+            "content": "What components of the list ('resistor', 'battery', 'led', 'switch') are present? NOT ALL WILL BE PRESENT, battery will always be present"
+        }
+        message_list.append(user_message)
+
+        completion2 = await client.chat.completions.create(
+            model="llama-3.2-90b-vision-preview",
+            messages=message_list,
+            temperature=0.7,
+            # max_tokens=1024,
+            top_p=1,
+            stream=False,
+            stop=None,
+        )
+
+        response2 = completion2.choices[0].message.content
+
+        print(response2)
+
+        ## now lets extract the json from the response
+        ## similar to this
+        
+        chat_completion_extraction = await client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an electrical circuit component identifier that outputs components in JSON.\n"
+                    # Pass the json schema to the model. Pretty printing improves results.
+                    f" The JSON object must use the schema: {json.dumps(BasicComponentList.model_json_schema(), indent=2)}",
+                },
+                {
+                    "role": "user",
+                    "content": f"Extract the components from the following text: {response2}",
+                },
+            ],
+            model="llama-3.2-90b-vision-preview",
+            temperature=0,
+            # Streaming is not supported in JSON mode
+            stream=False,
+            # Enable JSON mode by setting the response format
+            response_format={"type": "json_object"},
+        )
+
+        response3 = chat_completion_extraction.choices[0].message.content
+
+        print(response3)
+
+        print("--------------------------------")
+
+        try:
+            data = json.loads(response3)
+            return data
+        except Exception as e:
+            return None
+    else:
+        ## we will follow the same procedure but our final response will be a true or false if a switch is present or not
     
+        message_list = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "This is a sketched image of a basic high school electronic circuit. Please look at it well, WITHIN the sketched circuit, do you see any breaks in the line indicating a switch? its alright if you don't see any, just say whether you see a switch or not"
+                        }
+                    ]
+                }
+            ]
 
+        completion = await client.chat.completions.create(
+        model="llama-3.2-90b-vision-preview",
+        messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "This is a sketched image of a basic high school electronic circuit. Please look at it well, WITHIN the sketched circuit, do you see any breaks in the line indicating a switch? its alright if you don't see any, just say whether you see a switch or not"
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{image_data}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            temperature=0.8,
+            # max_tokens=1024,
+            top_p=1,
+            stream=False,
+            stop=None,
+        )
+
+        response1 = completion.choices[0].message.content
+
+        print(response1)
+
+        assistant_message = {
+            "role": "assistant",
+            "content": response1
+        }
+        message_list.append(assistant_message)
+
+
+        ## now lets extract the json from the response
+        ## similar to this
+        
+        chat_completion_extraction = await client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a switch identifier that outputs a true or false value given the text provided."
+                    # Pass the json schema to the model. Pretty printing improves results.
+                    f" The JSON object must use the schema: {json.dumps(Switch.model_json_schema(), indent=2)}",
+                },
+                {
+                    "role": "user",
+                    "content": f"Is there a switch present in the following text: {response1}",
+                },
+            ],
+            model="llama-3.2-90b-vision-preview",
+            temperature=0,
+            # Streaming is not supported in JSON mode
+            stream=False,
+            # Enable JSON mode by setting the response format
+            response_format={"type": "json_object"},
+        )
+
+        response3 = chat_completion_extraction.choices[0].message.content
+
+        print(response3)
+
+        print("--------------------------------")
+
+        try:
+            data = json.loads(response3)
+            print(data)
+            print("HEREEEEEEEEEE")
+            if list(data.values())[0] == True:
+                data = {"components": ['battery', 'resistor', 'switch']}
+            else:
+                data = {"components": ['battery', 'resistor', 'led']}
+            return data
+        except Exception as e:
+            print(e)
+            return {"components": ['battery', 'resistor']}
 

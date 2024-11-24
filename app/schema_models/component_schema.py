@@ -12,3 +12,6 @@ class BasicComponent(BaseModel):
 
 class BasicComponentList(BaseModel):
     components: list[BasicComponent] = Field(description="List of components in the circuit seen")
+
+class Switch(BaseModel):
+    switch_present: bool = Field(description="Whether a switch is present in the circuit or not")

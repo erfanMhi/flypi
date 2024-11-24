@@ -114,23 +114,23 @@ async def test_connection():
 
 @router.post("/get-components-from-image")
 async def get_components_from_image(request: CircuitImageRequest):
-    components = await identify_components_3shot(request.image_data)
+    only_look_for_switches = True
+    
+    components = await identify_components_3shot(request.image_data, only_look_for_switches)
     print(components)
 
     if components is None:
-        components = ['battery', 'resistor', 'led', 'switch']
+        components = {'components': ['battery', 'resistor', 'led', 'switch']}
 
     if isinstance(components, list) and len(components) == 0:
-        components = ['battery', 'resistor', 'led', 'switch']   
+        components = {'components': ['battery', 'resistor', 'led', 'switch']}   
 
     formatted_components = []
     for idx, component in enumerate(components['components'], 1):
         formatted_components.append({
             "id": str(idx),
-            "type": component['component_type']
+            "type": component
         })
-
-    # Create final response structure
 
     print(formatted_components)
     

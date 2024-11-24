@@ -10,11 +10,16 @@ class Settings(BaseSettings):
     SEED: int = 42
     GROQ_API_KEY: str = ""
     
-    # Add new network settings
+    # Network settings
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     RELOAD: bool = True
     
+    # SSL/TLS Settings
+    SSL_KEYFILE: str = "certs/key.pem"
+    SSL_CERTFILE: str = "certs/cert.pem"
+    USE_HTTPS: bool = True
+
     class Config:
         env_file = ".env"
 

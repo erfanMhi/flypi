@@ -79,3 +79,7 @@ async def retrieve_circuit_schema_test(request: CircuitImageRequest):
 async def test_connection():
     return {"message": "Connection successful"}
 
+# @router.post("/get-response-from-audio")
+# async def get_response_from_audio(request: AudioRequest):
+    
+

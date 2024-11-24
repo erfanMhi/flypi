@@ -79,6 +79,7 @@ async def identify_components(image_bytes: bytes) -> set[str]:
         "switch": await is_there_a_switch(image_bytes),
     }
 
+    print(f"Components: {components}")
     return_set = set()
     for component, presence in components.items():
         if presence:

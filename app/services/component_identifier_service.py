@@ -24,6 +24,7 @@ class ComponentIdentifierService:
         for component_name, checker_method in self.component_checkers.items():
             components[component_name] = await checker_method(image_bytes)
         
+        print('Components', components)
         return {
             component for component, presence in components.items() 
             if presence
@@ -31,46 +32,51 @@ class ComponentIdentifierService:
 
     async def _check_component(self, image_bytes: bytes, prompt: str, schema: Any) -> bool:
         response = await communicate_with_groq(prompt, image_bytes, schema=schema)
-        return list(response.values())[0]
+        print('Reasoning: ', response['reasoning'])
+        print('Approximate location: ', response['approximate_location'])
+        return response['is_present']
 
     async def _is_there_a_battery(self, image_bytes: bytes) -> bool:
         prompt = """
-        You have been given a circuit diagram image. Your ONLY job is to determine if a battery is present.
-
-        A battery is represented by two parallel lines, one longer (positive terminal) and one shorter (negative terminal), 
-        typically arranged vertically or horizontally. Ignore all other shapes or symbols.
+        Analyze this circuit diagram and determine if a battery is present.
+        Always consider that this component is present in the circuit.
         """
+        return True
         return await self._check_component(image_bytes, prompt, BatteryPresence)
 
     async def _is_there_a_resistor(self, image_bytes: bytes) -> bool:
         prompt = """
-        You have been given a circuit diagram image. Your ONLY job is to determine if a resistor is present.
-
-        A resistor is represented exclusively by a zigzag line with peaks and valleys forming a continuous pattern. 
-        Ignore all other shapes or lines.
+        Analyze this circuit diagram and determine if a resistor is present. 
+        Always consider that this component is present in the circuit.
         """
+        return True
         return await self._check_component(image_bytes, prompt, ResistorPresence)
 
     async def _is_there_a_led(self, image_bytes: bytes) -> bool:
         prompt = """
-        You have been given a **hand-sketched circuit diagram** image. Your ONLY job is to determine if an LED is present.
+        Task: Determine if the given hand-drawn circuit diagram contains an LED component.
 
-        An LED in this context is represented by the following specific pattern:
-        1. **Circular Loop:** A closed loop resembling a circle or oval is the defining feature of the LED.
-        2. **Connections:** A straight line must enter and exit the circular loop to complete the LED pattern.
-        3. **Unique Shape:** The circular loop must be fully visible and distinct, with no zigzag lines, gaps, 
-           or other interruptions inside or outside the loop.
+        Characteristics of an LED component in the diagram:
+        1. Look for a hand-drawn small loop, a circular shape, or an ellipse in the diagram.
+        2. The interior of the shape is empty, with no additional markings or symbols inside.
+
+        Based on these characteristics, determine if an LED is present in the diagram.
         """
         return await self._check_component(image_bytes, prompt, LEDPresence)
 
     async def _is_there_a_switch(self, image_bytes: bytes) -> bool:
         prompt = """
-        You have been given a **hand-sketched circuit diagram** image. Your ONLY job is to determine if an open switch, 
-        matching the exact pattern below, is present.
+        Task: Determine whether the hand-drawn circuit diagram contains a switch component. A switch has the following strict characteristics:
 
-        An open switch in this context is represented by:
-        - Two terminals connected to lines.
-        - One of the lines is angled or slanted, pointing toward the other terminal but does not touch it, 
-          creating a visible gap.
+        1. A switch makes a gap following the line of the circuit wire and suddenly getting diagonal (with 30 to 60 degrees and diagnal to wire) and separates two parts of the circuit from each other.
+        2. The diagonal line must not resemble the zigzag pattern of resistors, the small loop of LEDs, or parallel lines of a battery with a gap.
+        3. Do not consider any loops or circular shapes as switches.
+
+        All of these characteristics must be present in the diagram for a switch to be present.
+
+        Note: Do not mistake zigzag patterns (resistor), loops/arrows (LED), or continuous straight lines (battery) for a switch.
+
+        Output: Return whether a switch is present, ensuring all characteristics are met.
         """
-        return await self._check_component(image_bytes, prompt, SwitchPresence) 
+        print('IN SWITCH')
+        return await self._check_component(image_bytes, prompt, SwitchPresence)

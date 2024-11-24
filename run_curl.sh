@@ -24,4 +24,4 @@ EOF
 curl -X POST \
     -H "Content-Type: application/json" \
     -d "$JSON_PAYLOAD" \
-    http://localhost:8000/api/v1/retrieve-circuit-schema
+    http://localhost:8000/api/v1/retrieve-circuit-schema-test

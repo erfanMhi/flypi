@@ -1,0 +1,23 @@
+{
+    "components": [
+      {
+        "id": "B1",
+        "type": "battery"
+      },
+      {
+        "id": "R1",
+        "type": "resistor"
+      }
+    ],
+    "connections": [
+      {
+        "component": "B1",
+        "connections": ["R1"]
+      },
+      {
+        "component": "R1",
+        "connections": ["B1"]
+      }
+    ]
+  }
+  

@@ -15,39 +15,27 @@ class CircuitSchema(BaseModel):
     connections: list[Connection]
 
 class ResistorPresence(BaseModel):
-    """
-    Pydantic model to represent the presence of a resistor in a circuit diagram.
-    
-    This model contains a single boolean field, `resistor`, which indicates
-    whether a resistor is present or not in the analyzed circuit image.
-    """
-    
-    # The resistor field is described here with Field for extra metadata
     resistor: bool = Field(
         title="Resistor Presence",
         description="Indicates whether a resistor is detected in the circuit diagram image.",
-        example=True 
     )
 
 class BatteryPresence(BaseModel):
     battery: bool = Field(
         title="Battery Presence",
         description="Indicates whether a battery is detected in the circuit diagram image.",
-        example=True  
     )
 
 class LEDPresence(BaseModel):
     led: bool = Field(
         title="LED Presence",
         description="Indicates whether an LED is detected in the circuit diagram image.",
-        example=True  
     )
 
 class SwitchPresence(BaseModel):
     switch: bool = Field(
         title="Switch Presence",
         description="Indicates whether a switch is detected in the circuit diagram image.",
-        example=True  
     )
 
 

@@ -97,6 +97,7 @@ If there is a battery present, return True, if not return False.
 
     """
     response = await communicate_with_groq(prompt, image_bytes, schema=BatteryPresence)
+    print(f"IMPORTANT: {response}")
     return list(response.values())[0]
 
 async def is_there_a_resistor(image_bytes: bytes) -> bool:
@@ -124,6 +125,7 @@ If there is a led present, return True, if not return False.
 
     """
     response = await communicate_with_groq(prompt, image_bytes, schema=LEDPresence)
+    print(f"IMPORTANT: {response}")
     return list(response.values())[0]
 
 async def is_there_a_switch(image_bytes: bytes) -> bool:
@@ -136,6 +138,7 @@ If there is a switch present, return True, if not return False.
 
     """
     response = await communicate_with_groq(prompt, image_bytes, schema=SwitchPresence)
+    print(f"IMPORTANT: {response}")
     return list(response.values())[0]
     
 

@@ -6,11 +6,9 @@ from app.schema_models.component_schema import BasicComponentList, Switch
 from groq import AsyncGroq
 from pydantic import BaseModel
 from app.core.config import get_settings
-from openai import AsyncOpenAI
 
 settings = get_settings()
 client = AsyncGroq(api_key=settings.GROQ_API_KEY)
-openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
 def encode_image_bytes(image_bytes: bytes) -> str:
     return base64.b64encode(image_bytes).decode('utf-8')
@@ -23,10 +21,9 @@ async def communicate_with_groq(
     max_tokens: int = settings.MAX_TOKENS,
     schema: BaseModel = None,
     context_messages: List[Dict[str, Any]] = None,
-    seed: int = settings.SEED,
-    api_type: str = "groq"
+    seed: int = settings.SEED
 ) -> str:
-    """Communicate with groq or openai with optional schema validation and context
+    """Communicate with groq with optional schema validation and context
 
     Args:
         prompt: The prompt to send
@@ -37,7 +34,6 @@ async def communicate_with_groq(
         schema: Optional Pydantic model for structured output
         context_messages: Optional list of previous messages for context
         seed: Fixed random seed for reproducible results
-        api_type: The API to use, either 'groq' or 'openai'
     """
     image_data = encode_image_bytes(image_bytes)
     
@@ -54,58 +50,36 @@ async def communicate_with_groq(
         final_prompt += f"\n\nOutput must match this JSON schema exactly:\n{json.dumps(schema.model_json_schema(), indent=2)}"
     
     # Add the main message with image
-    if api_type == "groq":
-        messages.append({
-            "role": "user",
-            "content": [
-                {"type": "text", "text": final_prompt},
-                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_data}"}}
-            ]
-        })
-    elif api_type == "openai":
-        messages.append({
-            "role": "user",
-            "content": [
-                {"type": "text", "text": final_prompt},
-                {"type": "image_url", "image_url": {
-                    "url": f"data:image/png;base64,{image_data}"
-                }}
-            ]
-        })
-    else:
-        raise ValueError("Invalid API type specified. Use 'groq' or 'openai'.")
+    messages.append({
+        "role": "user",
+        "content": [
+            {"type": "text", "text": final_prompt},
+            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_data}"}}
+        ]
+    })
     
     # Configure completion options
     completion_kwargs = {
-        "model": model if api_type == "groq" else "gpt-4o",
+        "model": model,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
         "top_p": 1.0,
         "stream": False,
         "seed": seed,
+        "stop": None
     }
-    
-    # Add stop parameter only for Groq
-    if api_type == "groq":
-        completion_kwargs["stop"] = None
     
     # Add response format if schema is provided
     if schema:
         completion_kwargs["response_format"] = {"type": "json_object"}
 
-    print(f'Communicating with {api_type}') 
+    print(f'Communicating with Groq') 
     
-    if api_type == "groq":
-        completion = await asyncio.wait_for(
-            client.chat.completions.create(**completion_kwargs),
-            timeout=settings.GROQ_API_TIMEOUT
-        )
-    elif api_type == "openai":
-        completion = await asyncio.wait_for(
-            openai_client.chat.completions.create(**completion_kwargs),
-            timeout=settings.OPENAI_API_TIMEOUT
-        )
+    completion = await asyncio.wait_for(
+        client.chat.completions.create(**completion_kwargs),
+        timeout=settings.GROQ_API_TIMEOUT
+    )
     
     response = completion.choices[0].message.content
     
@@ -118,7 +92,7 @@ async def communicate_with_groq(
         except Exception as e:
             raise ValueError(f"Response validation failed: {str(e)}")
     
-    return response 
+    return response
 
 
 async def identify_components_3shot(image_data: bytes, only_look_for_switches: bool = False) -> Dict[str, Any]:

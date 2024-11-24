@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from app.core.exceptions import ImageTooLargeError, InvalidImageTypeError, AnalysisTimeoutError
-from app.services.groq_service import analyze_circuit_image, test_extract_full_schema, test_extract_full_schema_v2
+from app.services.groq_service import analyze_circuit_image, test_extract_full_schema, test_extract_full_schema_v0
 from app.core.config import get_settings
-from app.schemas.circuit import CircuitImageRequest
+from app.schemas.circuit import CircuitImageRequest, CircuitImageResponseV0
 import asyncio
 import base64
 
@@ -76,8 +76,8 @@ async def retrieve_circuit_schema_test(request: CircuitImageRequest):
         raise HTTPException(status_code=500, detail=str(e))
     
 
-@router.post("/retrieve-circuit-schema-test-v2")
-async def retrieve_circuit_schema_test_v2(request: CircuitImageRequest):
+@router.post("/retrieve-circuit-schema-v0", response_model=CircuitImageResponseV0)
+async def retrieve_circuit_schema_v0(request: CircuitImageRequest) -> CircuitImageResponseV0:
     """Process base64 encoded circuit image and extract schema
     """
     try:
@@ -96,7 +96,7 @@ async def retrieve_circuit_schema_test_v2(request: CircuitImageRequest):
             raise InvalidImageTypeError()
         
         # Process the image bytes
-        return await test_extract_full_schema_v2(image_bytes, basic=False)
+        return await test_extract_full_schema_v0(image_bytes)
         
     except (ImageTooLargeError, InvalidImageTypeError) as e:
         raise e

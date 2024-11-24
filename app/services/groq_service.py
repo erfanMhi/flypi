@@ -1,5 +1,5 @@
 from app.schema_models.circuit_schema import CircuitSchema
-from typing import Dict, Any
+from typing import Dict, Any, List
 import json
 from app.services.component_identifier_service import ComponentIdentifierService
 from app.services.groq_client import communicate_with_groq, encode_image_bytes
@@ -125,6 +125,16 @@ async def test_extract_full_schema(image_bytes: bytes, basic: bool = True) -> Di
     
     print("Running branched extraction")
     return await branched_extraction(image_bytes)
+
+
+async def test_extract_full_schema_v0(image_bytes: bytes) -> List[str]:
+    """Extract only the components list from the schema as return it as a list
+
+    This is a simplified version of the full schema extraction
+    """
+    components_available = await identify_components(image_bytes)
+    print(f"Components available: {components_available}")
+    return list(components_available)
     
     # # First teach about basic components
     # battery_prompt = """This is what a battery looks like in circuit diagrams. 

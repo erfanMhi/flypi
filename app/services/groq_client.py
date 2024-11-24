@@ -201,8 +201,15 @@ async def identify_components_3shot(image_data: bytes, only_look_for_switches: b
 
         try:
             data = json.loads(response3)
-            return data
+            # Transform the data structure
+            if 'components' in data:
+                transformed_components = {
+                    'components': [comp['component_type'] for comp in data['components']]
+                }
+                return transformed_components
+            return None
         except Exception as e:
+            print(f"Error parsing response: {e}")
             return None
     else:
         ## we will follow the same procedure but our final response will be a true or false if a switch is present or not

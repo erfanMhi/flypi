@@ -119,11 +119,25 @@ async def get_components_from_image(request: CircuitImageRequest):
     components = await identify_components_3shot(request.image_data, only_look_for_switches)
     print(components)
 
+    if not only_look_for_switches:
+        print("NOT ONLY LOOKING FOR SWITCHES")
+        print(components)
+
     if components is None:
         components = {'components': ['battery', 'resistor', 'led', 'switch']}
 
     if isinstance(components, list) and len(components) == 0:
         components = {'components': ['battery', 'resistor', 'led', 'switch']}   
+
+    if isinstance(components, dict):
+        ## if the components is only a baterry, then add resistor and led to the list
+        ## if missing battery, then add battery to the list
+        if 'components' in components:
+            if len(components['components']) == 1 and 'battery' in components['components']:
+                components['components'].extend(['resistor', 'led'])
+            
+            if 'battery' not in components['components']:
+                components['components'].append('battery')
 
     formatted_components = []
     for idx, component in enumerate(components['components'], 1):

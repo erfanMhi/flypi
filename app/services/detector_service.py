@@ -161,3 +161,21 @@ async def detect_and_crop_a4_paper(image_bytes: bytes) -> Optional[bytes]:
     loop = asyncio.get_event_loop()
     cropped_image = await loop.run_in_executor(None, process_image, image_bytes)
     return cropped_image
+
+async def process_uploaded_image(image_bytes: bytes):
+    """
+    Processes the uploaded image to detect and crop the A4 paper.
+    Returns a dictionary containing the status and cropped image bytes if successful.
+    """
+    cropped_image = await detect_and_crop_a4_paper(image_bytes)
+
+    if cropped_image is None:
+        return {
+            "status": "A4 paper not found.",
+            "cropped_image": None
+        }
+    else:
+        return {
+            "status": "A4 paper detected and cropped successfully.",
+            "cropped_image": cropped_image
+        }

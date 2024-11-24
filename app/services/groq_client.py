@@ -20,7 +20,7 @@ async def communicate_with_groq(
     max_tokens: int = settings.MAX_TOKENS,
     schema: BaseModel = None,
     context_messages: List[Dict[str, Any]] = None,
-    seed: int = 42
+    seed: int = settings.SEED
 ) -> str:
     """Communicate with groq with optional schema validation and context
 

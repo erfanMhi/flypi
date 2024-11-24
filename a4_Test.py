@@ -6,6 +6,56 @@ def debug_print(title, data):
     print(data)
     print("\n")
 
+def order_points(pts):
+    """
+    Orders points in the following order:
+    top-left, top-right, bottom-right, bottom-left
+    """
+    rect = np.zeros((4, 2), dtype="float32")
+
+    # Sum and difference to find top-left and bottom-right
+    s = pts.sum(axis=1)
+    rect[0] = pts[np.argmin(s)]       # Top-left has the smallest sum
+    rect[2] = pts[np.argmax(s)]       # Bottom-right has the largest sum
+
+    diff = np.diff(pts, axis=1)
+    rect[1] = pts[np.argmin(diff)]    # Top-right has the smallest difference
+    rect[3] = pts[np.argmax(diff)]    # Bottom-left has the largest difference
+
+    return rect
+
+def four_point_transform(image, pts):
+    """
+    Performs a perspective transform to obtain a top-down view of the image.
+    """
+    rect = order_points(pts)
+    (tl, tr, br, bl) = rect
+
+    # Compute the width of the new image
+    widthA = np.linalg.norm(br - bl)
+    widthB = np.linalg.norm(tr - tl)
+    maxWidth = max(int(widthA), int(widthB))
+
+    # Compute the height of the new image
+    heightA = np.linalg.norm(tr - br)
+    heightB = np.linalg.norm(tl - bl)
+    maxHeight = max(int(heightA), int(heightB))
+
+    # Destination points for the top-down view
+    dst = np.array([
+        [0, 0],
+        [maxWidth - 1, 0],
+        [maxWidth - 1, maxHeight - 1],
+        [0, maxHeight - 1]
+    ], dtype="float32")
+
+    # Compute the perspective transform matrix
+    M = cv2.getPerspectiveTransform(rect, dst)
+    # Apply the perspective transform
+    warped = cv2.warpPerspective(image, M, (maxWidth, maxHeight))
+
+    return warped
+
 def main():
     # Path to the input image
     image_path = 'image.png'  # Replace with your image path
@@ -61,13 +111,13 @@ def main():
         # If the approximated contour has four points, it might be the paper
         if num_vertices == 4:
             # A4 paper aspect ratio is approximately 0.707 (width/height)
-            # Allow some tolerance for detection
+            # Allow some tolerance for detection, considering possible rotation
             if 0.65 < aspect_ratio < 0.88:
                 screen_contour = approx
-                debug_print(f"Selected Contour #{i}", f"Aspect Ratio within range (0.65 - 0.75)")
+                debug_print(f"Selected Contour #{i}", f"Aspect Ratio within range (0.65 - 0.88)")
                 break
             else:
-                debug_print(f"Contour #{i} Skipped", f"Aspect Ratio {aspect_ratio:.3f} not within range (0.65 - 0.75)")
+                debug_print(f"Contour #{i} Skipped", f"Aspect Ratio {aspect_ratio:.3f} not within range (0.65 - 0.88)")
 
     # Check if the paper was found
     if screen_contour is None:
@@ -84,9 +134,20 @@ def main():
             print(f"Corner {idx + 1}: {corner}")
 
         # Optionally, save the output image with detected contour
-        output_path = 'a4_paper_detected.jpg'
-        cv2.imwrite(output_path, output_image)
-        print(f"\nOutput image with detected A4 paper saved as '{output_path}'.")
+        output_contour_path = 'a4_paper_detected.jpg'
+        cv2.imwrite(output_contour_path, output_image)
+        print(f"\nOutput image with detected A4 paper saved as '{output_contour_path}'.")
+
+        # Perform the perspective transform to obtain the cropped A4 paper
+        warped = four_point_transform(image, screen_contour.reshape(4, 2))
+
+        # Optionally, save the cropped image
+        cropped_output_path = 'a4_paper_cropped.jpg'
+        cv2.imwrite(cropped_output_path, warped)
+        print(f"Cropped A4 paper image saved as '{cropped_output_path}'.")
+
+        # Optionally, print the shape of the cropped image
+        debug_print("Cropped Image Shape", f"Height: {warped.shape[0]}, Width: {warped.shape[1]}, Channels: {warped.shape[2]}")
 
 if __name__ == "__main__":
-    main()
+        main()

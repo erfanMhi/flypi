@@ -1,3 +1,4 @@
+import base64
 from app.schema_models.circuit_schema import CircuitSchema
 from typing import Dict, Any, List
 import json

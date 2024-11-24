@@ -1,3 +1,4 @@
+from app.services.groq_client import identify_components_3shot
 from fastapi import APIRouter, HTTPException
 from app.core.exceptions import ImageTooLargeError, InvalidImageTypeError, AnalysisTimeoutError
 from app.services.groq_service import analyze_circuit_image, test_extract_full_schema, test_extract_full_schema_v0
@@ -110,5 +111,29 @@ async def test_connection():
 
 # @router.post("/get-response-from-audio")
 # async def get_response_from_audio(request: AudioRequest):
+
+@router.post("/get-components-from-image")
+async def get_components_from_image(request: CircuitImageRequest):
+    components = await identify_components_3shot(request.image_data)
+    print(components)
+
+    if components is None:
+        components = ['battery', 'resistor', 'led', 'switch']
+
+    if isinstance(components, list) and len(components) == 0:
+        components = ['battery', 'resistor', 'led', 'switch']   
+
+    formatted_components = []
+    for idx, component in enumerate(components['components'], 1):
+        formatted_components.append({
+            "id": str(idx),
+            "type": component['component_type']
+        })
+
+    # Create final response structure
+
+    print(formatted_components)
+    
+    return formatted_components
     
 

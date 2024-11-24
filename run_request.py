@@ -3,7 +3,7 @@ import requests
 import os
 
 # Path to image (using raw string to handle Windows paths)
-IMAGE_PATH = r"C:\Users\aleja\OneDrive\Escritorio\flypi\circuit.png"
+IMAGE_PATH = r"circuit.png"
 
 # Check if file exists
 if not os.path.exists(IMAGE_PATH):

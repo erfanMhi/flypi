@@ -1,5 +1,5 @@
 from typing import Set, Dict, Any
-from app.schema_models import (
+from app.schema_models.component_presence_schema import (
     BatteryPresence,
     LEDPresence,
     ResistorPresence,

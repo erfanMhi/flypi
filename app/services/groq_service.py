@@ -1,4 +1,4 @@
-from app.schema_models import CircuitSchema
+from app.schema_models.circuit_schema import CircuitSchema
 from typing import Dict, Any
 import json
 from app.services.component_identifier_service import ComponentIdentifierService

@@ -64,6 +64,10 @@ class SwitchPresence(BaseModel):
         title="Reasoning for Switch Presence",
         description="Explanation or reasoning for the detected presence or absence of a switch.",
     ) 
+    approximate_location: str = Field(
+        title="Approximate location of the switch",
+        description="The approximate location of the switch on the diagram.",
+    )
     is_present: bool = Field(
         title="Switch Presence",
         description="Indicates whether a switch is detected in the circuit diagram image.",

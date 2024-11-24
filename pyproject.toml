@@ -8,6 +8,7 @@ authors = ["Your Name <your.email@example.com>"]
 python = "^3.9"
 fastapi = "^0.110.0"
 groq = "^0.4.2"
+openai = "^1.55.0"
 python-dotenv = "^1.0.1"
 python-multipart = "^0.0.9"
 uvicorn = "^0.27.1"

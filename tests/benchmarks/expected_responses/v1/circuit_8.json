@@ -1,3 +1,39 @@
 {
-    
-}
+    "components": [
+      {
+        "id": "B1",
+        "type": "battery"
+      },
+      {
+        "id": "R1",
+        "type": "resistor"
+      },
+      {
+        "id": "S1",
+        "type": "switch"
+      },
+      {
+        "id": "L1",
+        "type": "led"
+      }
+    ],
+    "connections": [
+      {
+        "component": "B1",
+        "connections": ["R1", "L1"]
+      },
+      {
+        "component": "S1",
+        "connections": ["R1", "L1"]
+      },
+      {
+        "component": "R1",
+        "connections": ["B1", "S1"]
+      },
+      {
+        "component": "L1",
+        "connections": ["B1", "S1"]
+      }
+    ]
+  }
+  

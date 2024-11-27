@@ -1,3 +1,31 @@
 {
-    
-}
+    "components": [
+      {
+        "id": "B1",
+        "type": "battery"
+      },
+      {
+        "id": "S1",
+        "type": "switch"
+      },
+      {
+        "id": "L1",
+        "type": "led"
+      }
+    ],
+    "connections": [
+      {
+        "component": "B1",
+        "connections": ["S1", "L1"]
+      },
+      {
+        "component": "S1",
+        "connections": ["B1", "L1"]
+      },
+      {
+        "component": "L1",
+        "connections": ["B1", "S1"]
+      }
+    ]
+  }
+  

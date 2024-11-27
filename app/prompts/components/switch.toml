@@ -1,0 +1,23 @@
+[default]
+
+identification = """Task: Determine if the circuit diagram contains a switch component.
+
+A switch must have ALL of these characteristics:
+1. A straight conductor line with a deliberate gap
+2. A single diagonal lever line (30°-60° angle) connecting to one end of the gap
+3. Continuation of the straight line after the gap
+
+NOT a switch if you see:
+- Multiple parallel lines (a battery)
+- Circuit corners/turns without gaps
+- Random disconnections without diagonal levers
+- Two or more parallel diagonal lines
+
+Output required:
+1. Yes/No on switch presence
+2. Brief explanation referencing observed characteristics
+"""
+
+visual_representation = """A switch is represented as:
+
+The diagonal MUST be an intentional switch lever, not just a circuit turn or corner.""" 

@@ -5,7 +5,7 @@
         "type": "battery"
       },
       {
-        "id": "LED1",
+        "id": "L1",
         "type": "led"
       },
       {
@@ -16,15 +16,15 @@
     "connections": [
       {
         "component": "B1",
-        "connections": ["LED1", "S1"]
+        "connections": ["L1", "S1"]
       },
       {
-        "component": "LED1",
+        "component": "L1",
         "connections": ["B1", "S1"]
       },
       {
         "component": "S1",
-        "connections": ["LED1", "B1"]
+        "connections": ["L1", "B1"]
       }
     ]
   }

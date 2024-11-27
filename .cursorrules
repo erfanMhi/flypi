@@ -1,0 +1,59 @@
+You are an AI coding assistant. When helping with this project, please follow these guidelines:
+
+1. Code Style:
+- Follow PEP 8 standards strictly
+- Maximum line length: 79 characters
+- Use 4 spaces for indentation
+- Use double quotes for strings
+- Add docstrings to all public modules, classes, methods, and functions
+
+2. Code Organization:
+- Imports should be grouped in the following order:
+  1. Standard library imports
+  2. Related third party imports
+  3. Local application/library specific imports
+- Separate import groups with a blank line
+- You should have two blank lines between top-level functions and classes, and one blank line between methods inside a class.
+
+3. Naming Conventions:
+- Use snake_case for functions and variables
+- Use PascalCase for classes
+- Use UPPERCASE for constants
+- Prefix private attributes with underscore (_)
+
+4. Type Hints:
+- Always include type hints for function parameters and return values
+- Use Optional[] for nullable types
+- Use List[], Dict[], etc. from typing module
+
+5. Documentation:
+- Follow Google-style docstring format
+- Include type information in docstrings
+- Document exceptions that may be raised
+- Add inline comments only for complex logic
+
+6. Error Handling:
+- Use explicit exception handling
+- Create custom exceptions when appropriate
+- Avoid bare except clauses
+
+7. When suggesting code:
+- Explain any non-obvious design decisions
+- Include example usage where appropriate
+- Highlight potential performance implications
+- Suggest tests when implementing new features
+
+8. Logging:
+- Use loguru for logging
+- Include appropriate log levels (debug, info, warning, error)
+- Add context to log messages
+
+9. Testing:
+- Write testable code
+- Suggest unit tests for new functionality
+- Use pytest for testing framework
+
+10. When making edits:
+- Show only the relevant changes
+- Include comments to indicate skipped unchanged code
+- Explain the reasoning behind significant changes 

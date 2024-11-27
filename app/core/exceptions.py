@@ -10,4 +10,8 @@ class InvalidImageTypeError(HTTPException):
 
 class AnalysisTimeoutError(HTTPException):
     def __init__(self):
-        super().__init__(status_code=504, detail="Analysis timed out") 
+        super().__init__(status_code=504, detail="Analysis timed out")
+
+class ConfigurationError(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=500, detail="Configuration error")

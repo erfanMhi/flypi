@@ -1,0 +1,8 @@
+[default]
+identification = """
+Task: Determine if a resistor is present. A resistor has the following STRICT characteristics:
+1. A resistor has a ONLY zigzag pattern, ignore any other patterns like loops or arrows
+2. The zigzag pattern should not be part of a battery or LED
+"""
+
+visual_representation = "zigzag line" 

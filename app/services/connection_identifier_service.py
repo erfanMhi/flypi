@@ -1,52 +1,81 @@
 from typing import Set, Dict, Any, List, Tuple
-from app.schema_models.connection_schema import ComponentConnection
-from app.services.groq_client import communicate_with_groq
-from itertools import combinations
+import asyncio
+from app.prompt_schemas.connection_schema import ComponentConnection
+from app.services.llm_client import LLMService
+from app.core.config import Settings
 
 class ConnectionIdentifierService:
-    def __init__(self):
-        self.component_descriptions = {
-            "battery": "two parallel lines (one longer, one shorter)",
-            "resistor": "zigzag line",
-            "led": "circular loop with connecting lines",
-            "switch": "line with a gap between terminals"
-        }
 
-    async def identify_connections(self, components: Set[str], image_bytes: bytes) -> List[Dict[str, Any]]:
+    def __init__(self, settings: Settings, llm_service: LLMService):
+        self.llm_service = llm_service
+        self.settings = settings
+        self._semaphore = asyncio.Semaphore(self.settings.MAX_PARALLEL_REQUESTS)
+
+    async def _check_connection_with_semaphore(
+        self, comp1: str, comp2: str, image_bytes: bytes
+    ) -> bool:
+        """Wrapper for _check_connection that uses a semaphore."""
+        async with self._semaphore:
+            return await self._check_connection(comp1, comp2, image_bytes)
+
+    async def identify_connections(
+        self, 
+        components: List[Dict[str, str]], 
+        image_bytes: bytes
+    ) -> List[Dict[str, Any]]:
         """
-        Identifies connections between all pairs of components in the circuit.
+        Identifies connections between components in the circuit.
         
         Args:
-            components: Set of component names present in the circuit
+            components: List of component dictionaries with 'id' and 'type'
             image_bytes: The circuit diagram image bytes
             
         Returns:
-            List of dictionaries containing component pairs and their connection status
+            List of dictionaries containing component and their connections
         """
-        connections = []
-        # Generate all possible pairs of components
-        component_pairs = list(combinations(components, 2))
+        # Create all possible component pairs
+        connection_tasks = []
+        component_pairs: List[Tuple[Dict[str, str], Dict[str, str]]] = []
         
-        for comp1, comp2 in component_pairs:
-            is_connected = await self._check_connection(comp1, comp2, image_bytes)
-            connections.append({
-                "component1": comp1,
-                "component2": comp2,
-                "connected": is_connected
-            })
+        for i, comp in enumerate(components):
+            for other_comp in components[i + 1:]:
+                if other_comp["type"] != comp["type"]:
+                    component_pairs.append((comp, other_comp))
+                    connection_tasks.append(
+                        self._check_connection_with_semaphore(
+                            comp["type"],
+                            other_comp["type"],
+                            image_bytes
+                        )
+                    )
         
-        return connections
+        # Run all connection checks in parallel
+        connection_results = await asyncio.gather(*connection_tasks)
+        
+        # Build the connections map
+        connections_map = {comp["id"]: [] for comp in components}
+        
+        for (comp, other_comp), is_connected in zip(component_pairs, connection_results):
+            if is_connected:
+                connections_map[comp["id"]].append(other_comp["id"])
+                connections_map[other_comp["id"]].append(comp["id"])
+        
+        # Format the final output
+        return [
+            {"component": comp_id, "connections": connections}
+            for comp_id, connections in connections_map.items()
+        ]
 
     async def _check_connection(self, comp1: str, comp2: str, image_bytes: bytes) -> bool:
         """
         Checks if two components are connected in the circuit.
         """
         prompt = self._generate_connection_prompt(comp1, comp2)
-        response = await communicate_with_groq(
+        response = await self.llm_service.communicate(
             prompt=prompt,
             image_bytes=image_bytes,
             schema=ComponentConnection,
-            temperature=0.2  # Lower temperature for more precise answers
+            temperature=self.settings.TEMPERATURE
         )
         return response["is_connected"]
 
@@ -54,24 +83,22 @@ class ConnectionIdentifierService:
         """
         Generates a specific prompt for checking connection between two components.
         """
+        comp1_desc = self.settings.COMPONENT_DESCRIPTIONS[comp1]["visual_representation"]
+        comp2_desc = self.settings.COMPONENT_DESCRIPTIONS[comp2]["visual_representation"]
+
         return f"""
-        You are analyzing a hand-sketched circuit diagram. Your ONLY task is to determine if there is a direct or indirect 
+        You are analyzing a hand-sketched circuit diagram. Your ONLY task is to determine if there is a direct 
         connection between these two specific components:
 
-        Component 1: {comp1} (represented as {self.component_descriptions.get(comp1, "")})
-        Component 2: {comp2} (represented as {self.component_descriptions.get(comp2, "")})
+        Component 1: {comp1} (represented as {comp1_desc})
+        Component 2: {comp2} (represented as {comp2_desc})
 
         A connection exists if:
         1. The components are directly connected by a continuous line
-        2. The components are indirectly connected through other components or wires
-        3. There is a clear path for electrical current to flow between them
+        2. There shouldn't be any other components in between them just the line
 
         Important rules:
         - Only focus on these two specific components
         - Ignore all other components unless they form part of the connection path
-        - A connection exists even if it goes through other components
         - Look for continuous lines or paths between the components
-        - The connection can be made of multiple segments or wires
-
-        Respond with true if a connection exists, false if there is no connection.
         """ 

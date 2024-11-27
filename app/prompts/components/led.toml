@@ -1,0 +1,18 @@
+[default]
+identification = """
+Task: Identify LED components in hand-drawn circuit diagrams.
+
+An LED must have these exact characteristics:
+1. A single, continuous circular or elliptical loop
+2. Empty interior (no markings inside)
+3. Must be a complete, closed shape
+4. Must not be rectangular, square, or any other geometric form
+
+Exclude any shapes that have:
+- Zigzag patterns
+- Parallel lines
+- Internal markings
+- Angular or straight edges
+"""
+
+visual_representation = "circular loop with connecting lines" 

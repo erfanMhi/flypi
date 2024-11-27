@@ -54,6 +54,13 @@ Follow these steps to set up the project:
    GROQ_API_KEY=your_groq_api_key_here
    ```
 
+5. **Set up SSL certificates** for HTTPS:
+   - If you have existing certificates, place them in the `certs` directory as `cert.pem` and `key.pem`.
+   - To generate self-signed certificates, use OpenSSL:
+     ```bash
+     openssl req -x509 -newkey rsa:4096 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes
+     ```
+
 > **Note**: The `litellm` library is used to facilitate switching between different language model APIs.
 
 

@@ -1,82 +1,179 @@
-from typing import Set, Dict, Any
-from app.schema_models.component_presence_schema import (
+from typing import Set, Dict, Any, List, Tuple
+from loguru import logger
+from app.services.llm_client import LLMService
+from app.prompt_schemas.component_presence_schema import (
     BatteryPresence,
     LEDPresence,
     ResistorPresence,
     SwitchPresence
 )
-from app.services.groq_client import communicate_with_groq
+from app.core.config import Settings
+import asyncio
+
 
 class ComponentIdentifierService:
-    def __init__(self):
+    def __init__(self, settings: Settings, llm_service: LLMService):
+        """Initialize the component identifier service.
+
+        Args:
+            settings: Application settings
+            llm_service: LLM service instance
+        """
+        self.llm_service = llm_service
+        self.settings = settings
+        self._semaphore = asyncio.Semaphore(self.settings.MAX_PARALLEL_REQUESTS)
         self.component_checkers = {
             "battery": self._is_there_a_battery,
-            "resistor": self._is_there_a_resistor,
             "led": self._is_there_a_led,
+            "resistor": self._is_there_a_resistor,
             "switch": self._is_there_a_switch,
         }
+        self.circuit_description_prompt = (
+            "Starting at the top-left corner of the circuit diagram, describe in "
+            "detailed and clear terms how the shapes along the circuit line "
+            "appear as if you are walking along the path of the wire. Provide a "
+            "step-by-step \"tour\" of the circuit, describing every turn, "
+            "connection, or distinct feature you encounter, until you eventually "
+            "return to the starting point. Do not make any assumptions about the "
+            "specific components or symbols in the circuit—focus solely on "
+            "describing the physical shapes and structure of the lines as you "
+            "navigate them. Be as thorough and explicit as possible"
+        )
 
-    async def identify_components(self, image_bytes: bytes) -> Set[str]:
-        """Given an image, identify the components present
-        Returns a set of component names (e.g., {"battery", "resistor", "led"})
+    async def identify_components(
+        self, 
+        image_bytes: bytes
+    ) -> Tuple[str, List[Dict[str, str]]]:
+        """Given an image, get its description and identify components present.
+
+        Args:
+            image_bytes: The image data as bytes.
+
+        Returns:
+            Tuple[str, List[Dict[str, str]]]: Circuit description and list of 
+            components with their type and ID.
         """
-        components = {}
-        for component_name, checker_method in self.component_checkers.items():
-            components[component_name] = await checker_method(image_bytes)
-        
-        print('Components', components)
-        return {
-            component for component, presence in components.items() 
-            if presence
-        }
+        # Get initial circuit description
+        description = await self._get_circuit_description(image_bytes)
+        logger.info("Generated circuit description")
+        logger.debug(f"Circuit description: {description}")
 
-    async def _check_component(self, image_bytes: bytes, prompt: str, schema: Any) -> bool:
-        response = await communicate_with_groq(prompt, image_bytes, schema=schema)
-        print('Reasoning: ', response['reasoning'])
-        print('Approximate location: ', response['approximate_location'])
+        # Identify components
+        components = await self._identify_components(image_bytes)
+        
+        return description, components
+
+    async def _get_circuit_description(self, image_bytes: bytes) -> str:
+        """Get a detailed description of the circuit layout.
+
+        Args:
+            image_bytes: The image data as bytes.
+
+        Returns:
+            str: Detailed description of the circuit layout.
+        """
+        response = await self.llm_service.communicate(
+            prompt=self.circuit_description_prompt,
+            image_bytes=image_bytes,
+            temperature=self.settings.TEMPERATURE
+        )
+        return response
+
+    async def identify_components(self, image_bytes: bytes) -> List[Dict[str, str]]:
+        """Given an image, identify the components present.
+
+        Args:
+            image_bytes: The image data as bytes.
+
+        Returns:
+            List[Dict[str, str]]: List of components with their type and ID.
+            Example: [{"type": "battery", "id": "b1"}, {"type": "led", "id": "l1"}]
+        """
+        description = await self._get_circuit_description(image_bytes)
+        logger.info("Generated circuit description")
+        logger.debug(f"Circuit description: {description}")
+
+        async def check_component(name: str, checker: callable) -> tuple[str, bool]:
+            async with self._semaphore:
+                # Modify the checker functions to accept description parameter
+                result = await checker(image_bytes, description)
+                return name, result
+
+        # Run all component checks in parallel with semaphore control
+        tasks = [
+            check_component(name, checker)
+            for name, checker in self.component_checkers.items()
+        ]
+        results = await asyncio.gather(*tasks)
+        
+        # Convert results to dictionary
+        components = dict(results)
+        
+        logger.debug(f"Identified components: {components}")
+        component_list = [
+            {"type": component, "id": f"{component[0]}1"} 
+            for component, presence in components.items() 
+            if presence
+        ]
+        
+        return component_list
+
+    async def _check_component(
+        self, 
+        image_bytes: bytes, 
+        component_name: str, 
+        schema: Any,
+        circuit_description: str
+    ) -> bool:
+        """Check for component presence using configured prompt."""
+        prompt = self.settings.COMPONENT_DESCRIPTIONS[component_name]["identification"]
+        return await self._check_component_base(
+            image_bytes, 
+            prompt, 
+            schema,
+            circuit_description
+        )
+
+    async def _check_component_base(
+        self, 
+        image_bytes: bytes, 
+        prompt: str, 
+        schema: Any,
+        circuit_description: str
+    ) -> bool:
+        # Using two shot prompting to help the LLM understand the circuit before identifying the component
+        enhanced_prompt = f"""Given a circuit diagram, analyze it for specific components.
+
+Context:
+A detailed description of the circuit layout is provided below. Use this description 
+along with the visual information to make your determination.
+
+Circuit Layout Description:
+{circuit_description}
+
+{prompt}
+
+Important: 
+- Focus on identifying definitive evidence of the component
+- Consider both the visual representation and how it fits within the described circuit path
+"""
+
+        response = await self.llm_service.communicate(
+            prompt=enhanced_prompt,
+            image_bytes=image_bytes,
+            schema=schema,
+            temperature=self.settings.TEMPERATURE
+        )
         return response['is_present']
 
-    async def _is_there_a_battery(self, image_bytes: bytes) -> bool:
-        prompt = """
-        Analyze this circuit diagram and determine if a battery is present.
-        Always consider that this component is present in the circuit.
-        """
-        return True
-        return await self._check_component(image_bytes, prompt, BatteryPresence)
+    async def _is_there_a_battery(self, image_bytes: bytes, description: str) -> bool:
+        return await self._check_component(image_bytes, "battery", BatteryPresence, description)
 
-    async def _is_there_a_resistor(self, image_bytes: bytes) -> bool:
-        prompt = """
-        Analyze this circuit diagram and determine if a resistor is present. 
-        Always consider that this component is present in the circuit.
-        """
-        return True
-        return await self._check_component(image_bytes, prompt, ResistorPresence)
+    async def _is_there_a_resistor(self, image_bytes: bytes, description: str) -> bool:
+        return await self._check_component(image_bytes, "resistor", ResistorPresence, description)
 
-    async def _is_there_a_led(self, image_bytes: bytes) -> bool:
-        prompt = """
-        Task: Determine if the given hand-drawn circuit diagram contains an LED component.
+    async def _is_there_a_led(self, image_bytes: bytes, description: str) -> bool:
+        return await self._check_component(image_bytes, "led", LEDPresence, description)
 
-        Characteristics of an LED component in the diagram:
-        1. Look for a hand-drawn small loop, a circular shape, or an ellipse in the diagram.
-        2. The interior of the shape is empty, with no additional markings or symbols inside.
-
-        Based on these characteristics, determine if an LED is present in the diagram.
-        """
-        return await self._check_component(image_bytes, prompt, LEDPresence)
-
-    async def _is_there_a_switch(self, image_bytes: bytes) -> bool:
-        prompt = """
-        Task: Determine whether the hand-drawn circuit diagram contains a switch component. A switch has the following strict characteristics:
-
-        1. A switch makes a gap following the line of the circuit wire and suddenly getting diagonal (with 30 to 60 degrees and diagnal to wire) and separates two parts of the circuit from each other.
-        2. The diagonal line must not resemble the zigzag pattern of resistors, the small loop of LEDs, or parallel lines of a battery with a gap.
-        3. Do not consider any loops or circular shapes as switches.
-
-        All of these characteristics must be present in the diagram for a switch to be present.
-
-        Note: Do not mistake zigzag patterns (resistor), loops/arrows (LED), or continuous straight lines (battery) for a switch.
-
-        Output: Return whether a switch is present, ensuring all characteristics are met.
-        """
-        print('IN SWITCH')
-        return await self._check_component(image_bytes, prompt, SwitchPresence)
+    async def _is_there_a_switch(self, image_bytes: bytes, description: str) -> bool:
+        return await self._check_component(image_bytes, "switch", SwitchPresence, description)

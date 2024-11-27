@@ -1,0 +1,12 @@
+[default]
+identification = """
+Task: Determine if a battery is present. A battery has the following STRICT characteristics:
+1. Two parallel lines with a clear gap between them
+2. One line must be noticeably longer than the other line
+3. Both lines should be of similar thickness/width
+4. Lines should be solid (not dotted or dashed)
+5. Lines should be roughly straight
+6. Lines should be aligned with each other (parallel orientation)
+"""
+
+visual_representation = "two aligned parallel lines along the circuit terminals, one line longer than the other, with clear spacing between them" 
